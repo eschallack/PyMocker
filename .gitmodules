@@ -1,0 +1,3 @@
+[submodule "submodules/polyfactory"]
+	path = submodules/polyfactory
+	url = https://github.com/litestar-org/polyfactory
