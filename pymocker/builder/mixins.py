@@ -23,7 +23,6 @@ class PolyfactoryLogicMixin:
         Handle a value defined on the factory class itself.
         This method is an override of the one in BaseFactory to allow for custom logic.
         """
-        print("we r in da system")
         if is_safe_subclass(field_value, BaseFactory):
             if isinstance(field_build_parameters, Mapping):
                 return field_value.build(_build_context=build_context, **field_build_parameters)
