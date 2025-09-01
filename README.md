@@ -4,7 +4,7 @@
 PyMocker is a powerful and flexible Python library designed to generate realistic, context-aware mock data automatically. Built on top of [polyfactory](https://github.com/litestar-org/polyfactory), PyMocker extends its capabilities with intelligent field matching.
 
 # Example:
-
+usage is as simple as decorating your Polyfactory factory with mocker.mock():
 ```python
 class Person(BaseModel):
     FirstName:str= Field(max_length=8)
