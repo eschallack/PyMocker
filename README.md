@@ -39,6 +39,28 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
+### Intelligent Field Matching
+
+PyMocker goes beyond simple name matching. For example, `EmailAddress` and `CellPhoneNumber` in the `Person` model will intelligently map to appropriate Faker methods, even with non-standard casing, thanks to PyMocker's internal ranking and similarity algorithms. You can adjust the confidence threshold for this behavior:
+
+```python
+from pydantic import BaseModel, constr
+from pymocker.mocker import Mocker
+
+class Person(BaseModel):
+    firstname: constr(max_length=8)
+    EmailAddress: constr(max_length=20)
+    CellPhoneNumber: constr(max_length=15)
+
+# Adjust the confidence threshold for intelligent matching.
+Mocker.__confidence_threshold__ = 0.4 #.75 by default
+
+class CustomConfigPersonMocker(Mocker):
+    __model__ = Person
+
+person_custom_config = CustomConfigPersonMocker.build()
+print(person_custom_config.model_dump_json(indent=2))
+```
 ### Overriding Field Generation
 
 You can easily override the generation for any field by defining it directly within your Mocker class:
@@ -64,29 +86,6 @@ print(person_jane)
 ```
 ```shell
 firstname='John' birthdate=datetime.date(1966, 10, 6) EmailAddress='kyu@example.net' CellPhoneNumber='+1-299-454-1936' HomeAddress='566 Fisher Row' WorkAddress='4833 Deborah Highway Apt. 024'
-```
-
-### Intelligent Field Matching
-
-PyMocker goes beyond simple name matching. For example, `EmailAddress` and `CellPhoneNumber` in the `Person` model will intelligently map to appropriate Faker methods, even with non-standard casing, thanks to PyMocker's internal ranking and similarity algorithms. You can adjust the confidence threshold for this behavior:
-
-```python
-from pydantic import BaseModel, constr
-from pymocker.mocker import Mocker
-
-class Person(BaseModel):
-    firstname: constr(max_length=8)
-    EmailAddress: constr(max_length=20)
-    CellPhoneNumber: constr(max_length=15)
-
-# Adjust the confidence threshold for intelligent matching.
-Mocker.__confidence_threshold__ = 0.4 #.75 by default
-
-class CustomConfigPersonMocker(Mocker):
-    __model__ = Person
-
-person_custom_config = CustomConfigPersonMocker.build()
-print(person_custom_config.model_dump_json(indent=2))
 ```
 
 PyMocker provides several class-level attributes on the `Mocker` class that you can override to control its behavior:
