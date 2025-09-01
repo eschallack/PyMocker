@@ -1,68 +1,97 @@
-
 import sys
 import os
 submodule_paths = [os.path.join(os.path.dirname(__file__), '..', 'submodules/polyfactory')]
 for submodule_path in submodule_paths:
     if submodule_path not in sys.path:
         sys.path.append(submodule_path)
-from polyfactory import BaseFactory
+
+from polyfactory.factories.base import BaseFactory
 from polyfactory.factories import DataclassFactory, TypedDictFactory
 from pydantic import BaseModel
 from polyfactory.factories.pydantic_factory import ModelFactory
 from polyfactory.factories.sqlalchemy_factory import SQLAlchemyFactory
-from pydantic import BaseModel
 from faker import Faker
 from dataclasses import is_dataclass
-from typing import get_origin
+from typing import get_origin, Type
 from pymocker.builder.mixins import PolyfactoryLogicMixin
-from typing import Callable, Type, Any
 from pymocker.builder.rank import rank
-from pymocker.builder.utils import to_snake_case, get_return_type, segment_and_join_word
-class Mocker:
-    __fuzzy_find_method__ = True
-    __max_retries__ = 300
-    __coerce_on_fail__ = True
-    @staticmethod
-    def add(cls) -> BaseFactory:
-        if issubclass(cls, BaseModel):
+from pymocker.builder.utils import get_return_type, segment_and_join_word
+
+
+
+class MockerMeta(type):
+    def __new__(mcs, name, bases, dct):
+        if dct.get("__is_base_factory__"):
+            return super().__new__(mcs, name, bases, dct)
+
+        model = dct.get('__model__')
+        if not model:
+            return super().__new__(mcs, name, bases, dct)
+
+        # Determine the correct polyfactory base
+        if issubclass(model, BaseModel):
             base_factory = ModelFactory
-        elif is_dataclass(cls):
+        elif is_dataclass(model):
             base_factory = DataclassFactory
-        elif get_origin(cls) is dict or (isinstance(cls, type) and issubclass(cls, dict) and hasattr(cls, "__annotations__")):
-            base_factory = TypedDictFactory
-        elif hasattr(cls, "__table__"):  # SQLAlchemy declarative
+        elif hasattr(model, "__table__"):
             base_factory = SQLAlchemyFactory
+        elif get_origin(model) is dict or (isinstance(model, type) and issubclass(model, dict) and hasattr(model, "__annotations__")):
+            base_factory = TypedDictFactory
         else:
-            raise TypeError(f"Unsupported class type for factory: {cls}")
+            raise TypeError(f"Unsupported model type: {model}")
 
-        factory_name = f"{cls.__name__}Factory"
+        kwargs_for_factory = {
+            k: v for k, v in dct.items() 
+            if k not in ('__model__', '__module__', '__qualname__')
+        }
 
-        @MethodFinder.add_faker_methods_to_class
-        class _Factory(PolyfactoryLogicMixin,base_factory[cls]):  # type: ignore
-            __model__ = cls
+        factory_class = base_factory.create_factory(
+            model,
+            bases=(PolyfactoryLogicMixin,),
+            **kwargs_for_factory
+        )
+        
+        return MethodFinder.add_methods_to_cls(factory_class)
 
-        _Factory.__name__ = factory_name
+class Mocker(metaclass=MockerMeta):
+    __is_base_factory__ = True
 
-        setattr(Mocker, factory_name, _Factory)
-        return getattr(Mocker,factory_name)
+    # Default settings that can be overridden in subclasses
+    # - __match_field_generation_on_cosine_similarity__ -
+    # If set to True, use cosine similarity to match generation methods to fields
+    # based on __confidence_threshold__. This is the last in a number of matching
+    # techniques Mocker will try (exact match, convert to snake case and match, exact match on type)
+    # setting __confidence_threshold__ to 0 disables this behavior entirely.
+    __match_field_generation_on_cosine_similarity__ = True
+    
+    # - __confidence_threshold__ -
+    # Confidence threshold for cosine similarity metch between generation methods and field names.
+    # setting to 0 disables this behavior.
+    __confidence_threshold__: float = 0.75
+    # - __max_retries__ -
+    # The number of times faker will attempt to generate a constraint fuffilling value.
+    # Higher values will greatly affect performance.
+    
+    __max_retries__ = 300
+    
+    # - __coerce_on_fail__ -
+    # If set to True, coerce value to match constrains on faker generation failure.
+    __coerce_on_fail__ = True
+    
+
 
 class MethodFinder:
-    __confidence_threshold__:str=.75 # between 0 and 1
-    __method_return_annotation_matches_field_type__:True #
-    method_map:dict
-    model_obj:BaseModel
     @classmethod
-    def get_faker_method(cls,field_name:str,field_type:Type=None, filter_methods:list=[rank]):
+    def get_faker_method(cls:Mocker, field_name: str, field_type: Type = None, filter_methods: list = [rank], confidence_threshold: float = 0.75, rank_match=True):
         """Gets all callable methods from a Faker instance."""
         faker = Faker()
         excluded = {'add_provider', 'get_providers', 'seed', 'seed_instance', 'seed_locale'}
         if hasattr(faker, field_name):
             return getattr(faker, field_name)
-        
-        lookup_name=segment_and_join_word(field_name)
+
+        lookup_name = segment_and_join_word(field_name)
         if hasattr(faker, lookup_name):
             return getattr(faker, lookup_name)
-        
         else:
             methods = [
                 {
@@ -76,25 +105,35 @@ class MethodFinder:
                 and callable(func := getattr(faker, name))
                 and (get_return_type(func) == field_type or field_type is None)
             ]
-            if methods == 0:
+            if not methods:
                 return None
             elif len(methods) == 1:
-                return methods[0]
-            else:
+                return methods[0]['func']
+            elif rank_match == True and confidence_threshold != 0:
                 ranked_methods = rank([m['name'] for m in methods], lookup_name)
-                if ranked_methods[0][1][0]>=cls.__confidence_threshold__:
+                if ranked_methods and ranked_methods[0][1][0] >= confidence_threshold:
                     return getattr(faker, ranked_methods[0][0])
             return None
+
     @classmethod
-    def add_faker_methods_to_class(cls,factory_obj:BaseFactory):
+    def add_methods_to_cls(cls, factory_obj: Type[BaseFactory]):
         """
         A class decorator that finds all public methods on a Faker
         instance and adds them to the decorated class.
         """
-        for i, field_meta in  enumerate(factory_obj.get_model_fields()):
-            method=cls.get_faker_method(field_meta.name,
-                                         field_type=field_meta.annotation,
-                                         filter_methods=[rank])
+        confidence_threshold = getattr(Mocker, '__confidence_threshold__', 0.10)
+        for field_meta in factory_obj.get_model_fields():
+            # Do not override methods explicitly set on the factory
+            if hasattr(factory_obj, field_meta.name) and not hasattr(BaseFactory, field_meta.name):
+                continue
+
+            method = cls.get_faker_method(
+                field_meta.name,
+                field_type=field_meta.annotation,
+                filter_methods=[rank],
+                confidence_threshold=Mocker.__confidence_threshold__,
+                rank_match=Mocker.__match_field_generation_on_cosine_similarity__
+            )
             if method:
                 setattr(factory_obj, field_meta.name, method)
         return factory_obj

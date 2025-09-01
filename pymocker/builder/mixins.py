@@ -86,13 +86,6 @@ class PolyfactoryLogicMixin:
 
         for field_meta in cls.get_model_fields():
             field_build_parameters = cls.extract_field_build_parameters(field_meta=field_meta, build_args=kwargs)
-            # if isinstance(field_meta.name, Callable):
-            #     result[field_meta.name] = cls._handle_factory_field(
-            #             field_value=getattr(cls, field_meta.name),
-            #             field_build_parameters=field_build_parameters,
-            #             build_context=_build_context,
-            #             field_meta=field_meta
-            #         )
             
             if cls.should_set_field_value(field_meta, **kwargs) and not cls.should_use_default_value(field_meta):
                 if hasattr(cls, field_meta.name) and not hasattr(BaseFactory, field_meta.name):

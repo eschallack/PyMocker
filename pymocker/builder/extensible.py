@@ -34,7 +34,7 @@ def generate_by_rejection_sampling(
     last_value = None
     for _ in range(max_retries):
         last_value = generator()
-        if is_valid(last_value, annotation, **constraints):
+        if last_value is not None and is_valid(last_value, annotation, **constraints):
             return last_value
 
     if coerce_on_fail:
