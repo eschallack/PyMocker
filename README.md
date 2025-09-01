@@ -1,30 +1,25 @@
 # PyMocker
 *this library works, but is in an experimental phase. Feedback is encouraged*
 
-PyMocker is a powerful and flexible Python library designed to generate realistic, context-aware mock data automatically. Built on top of [polyfactory](https://github.com/litestar-org/polyfactory), PyMocker extends its capabilities with intelligent field matching.
+PyMocker is a powerful and flexible Python library designed to generate realistic, context-aware mock data automatically. Built for the robust [polyfactory](https://github.com/litestar-org/polyfactory) library, PyMocker extends its capabilities with intelligent field matching.
 
 # Example:
-usage is as simple as decorating your Polyfactory factory with mocker.mock():
+Just add mocker.mock() to any Polyfactory:
 ```python
+...
 class Person(BaseModel):
     FirstName:str= Field(max_length=8)
     EmailAddress:str= Field(max_length=20)
     CellPhoneNumber:str= Field(min_length=12,max_length=12)
 
-# without mocker
+# Polyfactory
 class PersonFactory(ModelFactory[Person]):...
-person = PersonFactory.build()
-print(f"Polyfactory:")
-pprint(person)
 
-# with mocker
+# Polyfactory + Mocker
 mocker=Mocker()
-mocker.Config.confidence_threshold = .5
 @mocker.mock()
 class MockerPersonFactory(ModelFactory[Person]):...
-mocker_person = MockerPersonFactory.build()
-print("Polyfactory + Mocker:")
-pprint(mocker_person)
+...
 ```
 ```shell
 Polyfactory:
@@ -32,6 +27,7 @@ Person(FirstName='48a40717', EmailAddress='1a5a1a37', CellPhoneNumber='6185d0d7c
 Polyfactory + Mocker:
 Person(FirstName='Ashley', EmailAddress='tbutler@example.net', CellPhoneNumber='429-860-3379')
 ```
+See [examples](https://github.com/eschallack/PyMocker/tree/main/examples) for more!
 
 ## Installation
 
@@ -64,7 +60,7 @@ class Hero(BaseModel):
     HeroName:str=Field(max_length=9)
     
 custom_faker_mocker=Mocker()
-custom_faker_mocker.Config.provider_instances = [SuperHeroProvider(), Faker(locale='en_us')]
+custom_faker_mocker.Config.provider_instances = [SuperHeroProvider(), Faker(locale='en_us')] # order affects matches
 
 @custom_faker_mocker.mock()
 ...
