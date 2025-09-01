@@ -13,8 +13,7 @@ from typing import (
     Any,
     Hashable,
     Mapping,
-    Sequence,
-    Callable
+    Sequence
 )
 from polyfactory.exceptions import  MissingBuildKwargException
 from polyfactory.field_meta import Null

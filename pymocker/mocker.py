@@ -56,7 +56,6 @@ class MockerMeta(type):
 class Mocker(metaclass=MockerMeta):
     __is_base_factory__ = True
 
-    # Default settings that can be overridden in subclasses
     # - __match_field_generation_on_cosine_similarity__ -
     # If set to True, use cosine similarity to match generation methods to fields
     # based on __confidence_threshold__. This is the last in a number of matching
@@ -68,10 +67,10 @@ class Mocker(metaclass=MockerMeta):
     # Confidence threshold for cosine similarity metch between generation methods and field names.
     # setting to 0 disables this behavior.
     __confidence_threshold__: float = 0.75
+    
     # - __max_retries__ -
     # The number of times faker will attempt to generate a constraint fuffilling value.
     # Higher values will greatly affect performance.
-    
     __max_retries__ = 300
     
     # - __coerce_on_fail__ -
@@ -121,9 +120,7 @@ class MethodFinder:
         A class decorator that finds all public methods on a Faker
         instance and adds them to the decorated class.
         """
-        confidence_threshold = getattr(Mocker, '__confidence_threshold__', 0.10)
         for field_meta in factory_obj.get_model_fields():
-            # Do not override methods explicitly set on the factory
             if hasattr(factory_obj, field_meta.name) and not hasattr(BaseFactory, field_meta.name):
                 continue
 

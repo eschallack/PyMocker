@@ -139,8 +139,6 @@ def coerce_path(value: Path, **kwargs) -> Path:
     """Path coercion is complex and potentially unsafe. This function does not modify the path."""
     return value
 
-# --- Dynamic Coercer Dispatcher ---
-
 COERCER_MAP = {
     int: coerce_int,
     float: coerce_float,

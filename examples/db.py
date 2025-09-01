@@ -16,7 +16,6 @@ import time
 import os
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
 load_dotenv()
 Base = declarative_base()
 
@@ -46,7 +45,6 @@ def run_example():
     db_url = None
 
     try:
-        # Start postgres container
         db_name = "postgres:latest"
         try:
             client.images.get(db_name)
@@ -62,7 +60,6 @@ def run_example():
             ports={"5432/tcp": None} # Use a random available port
         )
 
-        # Get connection URL
         for i in range(10):
             try:
                 container.reload()
@@ -87,12 +84,10 @@ def run_example():
         else:
             raise Exception("Could not connect to the database container.")
 
-        # Create table and session
         Base.metadata.create_all(engine)
         Session = sessionmaker(bind=engine)
         session = Session()
 
-        # Create and save a user
         UserFactory = Mocker(User)
         user_instance = UserFactory.build()
         
@@ -103,11 +98,9 @@ def run_example():
 
         print("User saved to database with ID:", user_instance.id)
 
-        # Query and print the user
         retrieved_user = session.query(User).filter_by(id=user_instance.id).one()
         print("Retrieved User from DB:", retrieved_user.name, retrieved_user.age)
 
-        # Clean up tables
         Base.metadata.drop_all(engine)
         session.close()
 

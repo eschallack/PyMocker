@@ -11,8 +11,6 @@ from uuid import UUID
 # Re-use existing validation logic where possible from polyfactory
 from submodules.polyfactory.polyfactory.value_generators.constrained_numbers import passes_pydantic_multiple_validator
 
-# --- Number Validators ---
-
 def is_valid_int(
     value: int,
     gt: int | None = None,
@@ -75,8 +73,6 @@ def is_valid_decimal(
 
     return True
 
-# --- String/Bytes Validators ---
-
 def is_valid_string(
     value: str,
     min_length: int | None = None,
@@ -108,8 +104,6 @@ def is_valid_bytes(
     if upper_case and not value.isupper(): return False
     return True
 
-# --- Collection Validators ---
-
 def is_valid_collection(
     value: Collection[Any],
     min_items: int | None = None,
@@ -132,8 +126,6 @@ def is_valid_mapping(
     if max_items is not None and len(value) > max_items: return False
     return True
 
-# --- Date/Time Validators ---
-
 def is_valid_date(
     value: date,
     gt: date | None = None,
@@ -147,8 +139,6 @@ def is_valid_date(
     if lt is not None and not value < lt: return False
     if le is not None and not value <= le: return False
     return True
-
-# --- Other Validators ---
 
 def is_valid_uuid(
     value: UUID,

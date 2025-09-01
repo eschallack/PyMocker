@@ -19,9 +19,8 @@ def generate_by_rejection_sampling(
 ) -> T:
     """
     Generates a value by repeatedly calling a generator until it satisfies the given constraints.
-
-    This function uses a "generate-and-test" or "rejection sampling" approach.
-    It can optionally fall back to forcefully coercing the last generated value if sampling fails.
+    It's not great, but it works!
+    Optionally fall back to forcefully coercing the last generated value if sampling fails.
 
     :param generator: A callable that produces values (e.g., a Faker method).
     :param annotation: The type annotation of the value to generate (e.g., int, str).

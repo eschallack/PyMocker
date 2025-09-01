@@ -1,6 +1,5 @@
 from sentence_transformers import SentenceTransformer, util
-from pydantic import BaseModel
-model = SentenceTransformer('all-MiniLM-L6-v2')  # compact and fast
+model = SentenceTransformer('all-MiniLM-L6-v2')
 
 def rank(options:list[str],target:str):
     if not options:
