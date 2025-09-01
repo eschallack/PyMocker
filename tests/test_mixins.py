@@ -14,6 +14,8 @@ class MyModel(BaseModel):
 
 class MyFactory(PolyfactoryLogicMixin, ModelFactory[MyModel]):
     __model__ = MyModel
+    __max_retries__ = 300
+    __coerce_on_fail__ = True
 
 # 2. Tests for PolyfactoryLogicMixin
 

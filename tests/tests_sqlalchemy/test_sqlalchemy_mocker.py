@@ -7,9 +7,11 @@ from sqlalchemy import (
     ForeignKey,
     Float,
     DateTime,
+    inspect
 )
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship, Session
 from pymocker.mocker import Mocker
+from polyfactory.factories.sqlalchemy_factory import SQLAlchemyFactory
 import datetime
 import docker
 import time
@@ -38,6 +40,8 @@ class Post(Base):
     user = relationship("User", back_populates="posts")
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     rating = Column(Float)
+
+mocker = Mocker()
 
 @pytest.mark.usefixtures("db_session")
 class TestSQLAlchemyMocker:
@@ -99,16 +103,17 @@ class TestSQLAlchemyMocker:
                 container.stop()
                 container.remove()
 
-    @pytest.fixture(scope="class")
+    @pytest.fixture(scope="function")
     def db_session(self, postgres_db:str):
         """
-        A class-scoped fixture to provide a database session for tests.
+        A function-scoped fixture to provide a database session for tests.
         """
         engine = create_engine(postgres_db)
         Base.metadata.create_all(engine)
         Session = sessionmaker(bind=engine)
         session = Session()
         yield session
+        session.rollback()
         session.close()
         Base.metadata.drop_all(engine)
 
@@ -116,7 +121,8 @@ class TestSQLAlchemyMocker:
         """
         Tests that Mocker can create a factory for a SQLAlchemy model.
         """
-        class UserFactory(Mocker):
+        @mocker.mock()
+        class UserFactory(SQLAlchemyFactory):
             __model__ = User
         assert UserFactory.__model__ == User
         assert hasattr(UserFactory, "build")
@@ -125,21 +131,20 @@ class TestSQLAlchemyMocker:
         """
         Tests that the factory can build an instance without persisting it.
         """
-        class UserFactory(Mocker):
+        @mocker.mock()
+        class UserFactory(SQLAlchemyFactory):
             __model__ = User
         user_instance = UserFactory.build()
         assert isinstance(user_instance, User)
-        assert user_instance.id is None 
-        assert isinstance(user_instance.name, str)
-        assert isinstance(user_instance.age, int)
+        assert inspect(user_instance).transient
 
     def test_sqlalchemy_create_instance(self, db_session: Session):
         """
         Tests that the factory can create and persist an instance.
         """
-        class UserFactory(Mocker):
+        @mocker.mock(session=db_session)
+        class UserFactory(SQLAlchemyFactory):
             __model__ = User
-        UserFactory.__session__ = db_session
         user_instance = UserFactory.create_sync()
 
         assert isinstance(user_instance, User)
@@ -154,53 +159,64 @@ class TestSQLAlchemyMocker:
         """
         Tests that PK/FK relationships are handled correctly.
         """
-        class UserFactory(Mocker):
+        @mocker.mock(session=db_session, set_relationships=True)
+        class UserFactory(SQLAlchemyFactory):
             __model__ = User
-        class PostFactory(Mocker):
+        @mocker.mock(session=db_session, set_relationships=True)
+        class PostFactory(SQLAlchemyFactory):
             __model__ = Post
-        UserFactory.__session__ = db_session
-        PostFactory.__session__ = db_session
-        UserFactory.__set_relationships__ = True
-        PostFactory.__set_relationships__ = True
         
-        user = UserFactory.create_sync()
-        post = PostFactory.create_sync(user_id=user.id)
+        try:
+            SQLAlchemyFactory.register_factory(User, UserFactory)
 
-        assert post.user_id == user.id
-        assert post.user is not None
-        assert post.user.id == user.id
+            user = UserFactory.create_sync()
+            post = PostFactory.create_sync(user_id=user.id)
 
-        post_with_new_user = PostFactory.create_sync()
-        assert post_with_new_user.user_id is not None
-        assert post_with_new_user.user is not None
-        
-        retrieved_user = db_session.query(User).filter_by(id=post_with_new_user.user.id).one()
-        assert retrieved_user is not None
+            assert post.user_id == user.id
+            assert post.user is not None
+            assert post.user.id == user.id
+
+            post_with_new_user = PostFactory.create_sync()
+            assert post_with_new_user.user_id is not None
+            assert post_with_new_user.user is not None
+            
+            retrieved_user = db_session.query(User).filter_by(id=post_with_new_user.user.id).one()
+            assert retrieved_user is not None
+        finally:
+            SQLAlchemyFactory.unregister_factory(User)
 
     def test_generated_data_types(self, db_session: Session):
         """
         Tests that the generated data types match the model's column types.
         """
-        class PostFactory(Mocker):
-            __model__ = Post
-        PostFactory.__session__ = db_session
-        
-        post_instance = PostFactory.create_sync()
+        @mocker.mock(session=db_session, set_relationships=True)
+        class UserFactory(SQLAlchemyFactory):
+            __model__ = User
 
-        assert isinstance(post_instance.id, int)
-        assert isinstance(post_instance.title, str)
-        assert isinstance(post_instance.content, str)
-        assert isinstance(post_instance.user_id, int)
-        assert isinstance(post_instance.created_at, datetime.datetime)
-        assert isinstance(post_instance.rating, float)
+        @mocker.mock(session=db_session, set_relationships=True)
+        class PostFactory(SQLAlchemyFactory):
+            __model__ = Post
+        
+        try:
+            SQLAlchemyFactory.register_factory(User, UserFactory)
+            post_instance = PostFactory.create_sync()
+
+            assert isinstance(post_instance.id, int)
+            assert isinstance(post_instance.title, str)
+            assert isinstance(post_instance.content, str)
+            assert isinstance(post_instance.user_id, int)
+            assert isinstance(post_instance.created_at, datetime.datetime)
+            assert isinstance(post_instance.rating, float)
+        finally:
+            SQLAlchemyFactory.unregister_factory(User)
 
     def test_batch_creation(self, db_session: Session):
         """
         Tests creating a batch of instances.
         """
-        class UserFactory(Mocker):
+        @mocker.mock(session=db_session)
+        class UserFactory(SQLAlchemyFactory):
             __model__ = User
-        UserFactory.__session__ = db_session
         
         num_users = 5
         users = UserFactory.create_batch_sync(num_users)

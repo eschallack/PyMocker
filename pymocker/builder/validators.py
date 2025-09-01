@@ -9,7 +9,7 @@ from typing import Any, Collection, Literal, Mapping, Pattern, get_origin
 from uuid import UUID
 
 # Re-use existing validation logic where possible from polyfactory
-from submodules.polyfactory.polyfactory.value_generators.constrained_numbers import passes_pydantic_multiple_validator
+from polyfactory.value_generators.constrained_numbers import passes_pydantic_multiple_validator
 
 def is_valid_int(
     value: int,

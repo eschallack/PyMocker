@@ -1,30 +1,36 @@
 # PyMocker
 *this library works, but is in an experimental phase. Feedback is encouraged*
-PyMocker is a powerful and flexible Python library designed to generate realistic, context-aware mock data automatically. Built on top of [polyfactory](https://github.com/litestar-org/polyfactory), PyMocker extends its capabilities with intelligent field matching.
+
+PyMocker is a powerful and flexible Python library designed to generate realistic, context-aware mock data automatically. Built to extend the functionality of [polyfactory](https://github.com/litestar-org/polyfactory) - implementing it is as simple as adding a decorator to your factories.
 
 # Example:
-
+Before and after:
 ```python
-from pydantic import BaseModel, constr
-from pymocker.mocker import Mocker
-from datetime import date
 class Person(BaseModel):
-    firstname: constr(max_length=8)
-    birthdate: date
-    EmailAddress: constr(max_length=20)
-    CellPhoneNumber: constr(max_length=15)
-    HomeAddress:constr(max_length=100)
-    WorkAddress:constr(max_length=100)
+    FirstName:str= Field(max_length=8)
+    EmailAddress:str= Field(max_length=20)
+    CellPhoneNumber:str= Field(min_length=12,max_length=12)
 
-class PersonWithStaticFirstNameFactory(Mocker):
-    __model__ = Person
+# without mocker
+class PersonFactory(ModelFactory[Person]):...
+person = PersonFactory.build()
+print(f"Polyfactory:")
+pprint(person)
 
-person = PersonWithStaticFirstNameFactory.build()
-print(person)
-
+# with mocker
+mocker=Mocker()
+mocker.Config.confidence_threshold = .5
+@mocker.mock()
+class MockerPersonFactory(ModelFactory[Person]):...
+mocker_person = MockerPersonFactory.build()
+print("Polyfactory + Mocker:")
+pprint(mocker_person)
 ```
 ```shell
-firstname='John' birthdate=datetime.date(1966, 10, 6) EmailAddress='kyu@example.net' CellPhoneNumber='+1-299-454-1936' HomeAddress='566 Fisher Row' WorkAddress='4833 Deborah Highway Apt. 024'
+Polyfactory:
+Person(FirstName='48a40717', EmailAddress='1a5a1a37', CellPhoneNumber='6185d0d7c109')
+Polyfactory + Mocker:
+Person(FirstName='Ashley', EmailAddress='tbutler@example.net', CellPhoneNumber='429-860-3379')
 ```
 
 ## Installation
@@ -46,23 +52,25 @@ You can easily override the generation for any field by defining it directly wit
 from pydantic import BaseModel, constr
 from pymocker.mocker import Mocker
 from datetime import date
+from polyfactory.factories.pydantic_factory import ModelFactory
 class Person(BaseModel):
     firstname: constr(max_length=8)
-    birthdate: date
     EmailAddress: constr(max_length=20)
     CellPhoneNumber: constr(max_length=15)
     HomeAddress:constr(max_length=100)
     WorkAddress:constr(max_length=100)
 
-class PersonWithStaticFirstNameFactory(Mocker):
-    __model__ = Person
+mocker=Mocker()
+@mocker.mock()
+class PersonFactory(ModelFactory[Person]):
     firstname="jane"
-person_jane = PersonWithStaticFirstNameFactory.build()
+    
+person_jane = PersonFactory.build()
 print(person_jane)
 
 ```
 ```shell
-firstname='John' birthdate=datetime.date(1966, 10, 6) EmailAddress='kyu@example.net' CellPhoneNumber='+1-299-454-1936' HomeAddress='566 Fisher Row' WorkAddress='4833 Deborah Highway Apt. 024'
+firstname='jane' EmailAddress='katie77@example.org' CellPhoneNumber='556-938-8574' HomeAddress='55009 Hayes Circles Suite 416' WorkAddress='456 Hendrix Stravenue Suite 671'
 ```
 
 ### Intelligent Field Matching
