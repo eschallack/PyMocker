@@ -1,10 +1,9 @@
 # PyMocker
 *this library works, but is in an experimental phase. Feedback is encouraged*
-
-PyMocker is a powerful and flexible Python library designed to generate realistic, context-aware mock data automatically. Built to extend the functionality of [polyfactory](https://github.com/litestar-org/polyfactory) - implementing it is as simple as adding a decorator to your factories.
+PyMocker is a powerful and flexible Python library designed to generate realistic, context-aware mock data automatically. Built on top of [polyfactory](https://github.com/litestar-org/polyfactory), PyMocker extends its capabilities with intelligent field matching.
 
 # Example:
-Before and after:
+
 ```python
 class Person(BaseModel):
     FirstName:str= Field(max_length=8)
@@ -44,6 +43,28 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
+### Intelligent Field Matching
+
+PyMocker goes beyond simple name matching. For example, `EmailAddress` and `CellPhoneNumber` in the `Person` model will intelligently map to appropriate Faker methods, even with non-standard casing, thanks to PyMocker's internal ranking and similarity algorithms. You can adjust the confidence threshold for this behavior:
+
+```python
+from pydantic import BaseModel, constr
+from pymocker.mocker import Mocker
+
+class Person(BaseModel):
+    firstname: constr(max_length=8)
+    EmailAddress: constr(max_length=20)
+    CellPhoneNumber: constr(max_length=15)
+
+# Adjust the confidence threshold for intelligent matching.
+Mocker.__confidence_threshold__ = 0.4 #.75 by default
+
+class CustomConfigPersonMocker(Mocker):
+    __model__ = Person
+
+person_custom_config = CustomConfigPersonMocker.build()
+print(person_custom_config.model_dump_json(indent=2))
+```
 ### Overriding Field Generation
 
 You can easily override the generation for any field by defining it directly within your Mocker class:
@@ -70,7 +91,7 @@ print(person_jane)
 
 ```
 ```shell
-firstname='jane' EmailAddress='katie77@example.org' CellPhoneNumber='556-938-8574' HomeAddress='55009 Hayes Circles Suite 416' WorkAddress='456 Hendrix Stravenue Suite 671'
+firstname='John' birthdate=datetime.date(1966, 10, 6) EmailAddress='kyu@example.net' CellPhoneNumber='+1-299-454-1936' HomeAddress='566 Fisher Row' WorkAddress='4833 Deborah Highway Apt. 024'
 ```
 
 ### Intelligent Field Matching
