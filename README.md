@@ -45,93 +45,64 @@ pip install -r requirements.txt
 ```
 ### Intelligent Field Matching
 
-PyMocker goes beyond simple name matching. For example, `EmailAddress` and `CellPhoneNumber` in the `Person` model will intelligently map to appropriate Faker methods, even with non-standard casing, thanks to PyMocker's internal ranking and similarity algorithms. You can adjust the confidence threshold for this behavior:
+PyMocker's internal ranking and similarity algorithms use a number of techniques to match fields to methods, including cosine similarity. You can adjust the confidence threshold for this behavior:
 
 ```python
-from pydantic import BaseModel, constr
-from pymocker.mocker import Mocker
-
-class Person(BaseModel):
-    firstname: constr(max_length=8)
-    EmailAddress: constr(max_length=20)
-    CellPhoneNumber: constr(max_length=15)
-
-# Adjust the confidence threshold for intelligent matching.
-Mocker.__confidence_threshold__ = 0.4 #.75 by default
-
-class CustomConfigPersonMocker(Mocker):
-    __model__ = Person
-
-person_custom_config = CustomConfigPersonMocker.build()
-print(person_custom_config.model_dump_json(indent=2))
-```
-### Overriding Field Generation
-
-You can easily override the generation for any field by defining it directly within your Mocker class:
-
-```python
-from pydantic import BaseModel, constr
-from pymocker.mocker import Mocker
-from datetime import date
-from polyfactory.factories.pydantic_factory import ModelFactory
-class Person(BaseModel):
-    firstname: constr(max_length=8)
-    EmailAddress: constr(max_length=20)
-    CellPhoneNumber: constr(max_length=15)
-    HomeAddress:constr(max_length=100)
-    WorkAddress:constr(max_length=100)
-
+...
 mocker=Mocker()
+Mocker.confidence_threshold = 0.75 #.5 by default. higher means the model must be more confident to match
 @mocker.mock()
-class PersonFactory(ModelFactory[Person]):
-    firstname="jane"
+...
+```
+### Adding and customizing Providers
+By default, PyMocker will use a Faker instance as its sole method provider. Configure your faker instance and add custom classes by adding it directly to Mocker's provider_instances.
+
+```python
+...
+class SuperHeroProvider:
+    @staticmethod
+    def super_hero_name():
+        return 'MockerMan'
+class Hero(BaseModel):
+    HeroName:str=Field(max_length=9)
     
-person_jane = PersonFactory.build()
-print(person_jane)
+custom_faker_mocker=Mocker()
+custom_faker_mocker.Config.provider_instances = [SuperHeroProvider(), Faker(locale='en_us')]
+
+@custom_faker_mocker.mock()
+...
 
 ```
 ```shell
-firstname='John' birthdate=datetime.date(1966, 10, 6) EmailAddress='kyu@example.net' CellPhoneNumber='+1-299-454-1936' HomeAddress='566 Fisher Row' WorkAddress='4833 Deborah Highway Apt. 024'
+Hero(HeroName='MockerMan')
 ```
 
 ### Intelligent Field Matching
 
-PyMocker goes beyond simple name matching. For example, `EmailAddress` and `CellPhoneNumber` in the `Person` model will intelligently map to appropriate Faker methods, even with non-standard casing, thanks to PyMocker's internal ranking and similarity algorithms. You can adjust the confidence threshold for this behavior:
-
+PyMocker uses a number of matching rules to match methods to fields, including cosine similarity.
+Configure this behavior like so:
 ```python
-from pydantic import BaseModel, constr
-from pymocker.mocker import Mocker
-
-class Person(BaseModel):
-    firstname: constr(max_length=8)
-    EmailAddress: constr(max_length=20)
-    CellPhoneNumber: constr(max_length=15)
-
-# Adjust the confidence threshold for intelligent matching.
-Mocker.__confidence_threshold__ = 0.4 #.75 by default
-
-class CustomConfigPersonMocker(Mocker):
-    __model__ = Person
-
-person_custom_config = CustomConfigPersonMocker.build()
-print(person_custom_config.model_dump_json(indent=2))
+#Control the Confidence threshold of similarity matching, .5 by default
+mocker.confidence_threshold = 0.75
 ```
+**Note**: Cosine Similarity is not perfect, and at times, may produce undesired results.
+You can disable this behavior entirely by setting match_field_generation_on_cosine_similarity to False
+```python
+mocker.match_field_generation_on_cosine_similarity = False
+# a confidence threshold of 0 also disables the behavior
+mocker.confidence_threshold = 0
+```
+When disabled, PyMocker still uses word segmentation to discover matches for you. If no method is found,
+PyMocker defaults to PolyFactory's behavior
 
-PyMocker provides several class-level attributes on the `Mocker` class that you can override to control its behavior:
-
-*   `__match_field_generation_on_cosine_similarity__` (bool): If `True`, uses cosine similarity to match generation methods to fields based on `__confidence_threshold__`. This is the last matching technique attempted. Defaults to `True`.
-*   `__confidence_threshold__` (float): The confidence threshold for cosine similarity matching between generation methods and field names. Setting to `0` disables this behavior entirely. Defaults to `0.75`.
-*   `__max_retries__` (int): The number of times Faker will attempt to generate a constraint-fulfilling value. Higher values can impact performance. Defaults to `300`.
-*   `__coerce_on_fail__` (bool): If `True`, attempts to coerce the value to match constraints if Faker generation fails. Defaults to `True`.
+Other configurable attributes:
+*   `max_retries` (int): The number of times a method will attempt to generate a constraint-fulfilling value. Higher values can impact performance. Defaults to `300`.
+*   `coerce_on_fail` (bool): If `True`, attempts to coerce the value to match constraints if Faker generation fails. Defaults to `True`. When set to `False`, PyMocker will default to a PolyFactory generated value
 
 ## Supported Model Types
 
-PyMocker seamlessly integrates with:
-
-*   **Pydantic** (`BaseModel`)
-*   **Dataclasses**
-*   **TypedDicts**
-*   **SQLAlchemy** 🚧 Under Construction
+PyMocker seamlessly integrates with all PolyFactory Factories, except for SQLAlchemy - there's currently an issue
+with pk/fk relationships, so your milage may vary
 
 ## Contributing
 

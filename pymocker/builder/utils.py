@@ -7,11 +7,16 @@ load()
 def segment_and_join_word(word:str, sep:str='_'):
     return sep.join(segment(word)).lower()
 
-def get_return_type(func: callable) -> Any:
+def get_return_type(func: callable,find_by_executing_method=False) -> Any:
     """A helper to safely get the return type annotation of a function."""
     try:
         sig = inspect.signature(func)
-        return sig.return_annotation if sig.return_annotation is not sig.empty else Any
+        rtype=sig.return_annotation
+        if rtype is sig.empty and not find_by_executing_method:
+            rtype=Any
+        elif rtype is sig.empty and find_by_executing_method:
+            rtype=type(func())
+        return rtype
     except (ValueError, TypeError):
         return Any
     

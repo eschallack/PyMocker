@@ -1,13 +1,13 @@
-from pydantic import BaseModel, constr
+from pydantic import BaseModel, Field
 from pymocker.mocker import Mocker
 from datetime import date
 from polyfactory.factories.pydantic_factory import ModelFactory
 class Person(BaseModel):
-    firstname: constr(max_length=8)
-    EmailAddress: constr(max_length=20)
-    CellPhoneNumber: constr(max_length=15)
-    HomeAddress:constr(max_length=100)
-    WorkAddress:constr(max_length=100)
+    firstname:str = Field(max_length=8)
+    EmailAddress:str = Field(max_length=20)
+    CellPhoneNumber:str = Field(max_length=15)
+    HomeAddress:str = Field(max_length=100)
+    WorkAddress:str = Field(max_length=100)
 
 mocker=Mocker()
 @mocker.mock()
