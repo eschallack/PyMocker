@@ -1,5 +1,6 @@
 # PyMocker
 *this library works, but is in an experimental phase. Feedback is encouraged*
+
 PyMocker is a powerful and flexible Python library designed to generate realistic, context-aware mock data automatically. Built on top of [polyfactory](https://github.com/litestar-org/polyfactory), PyMocker extends its capabilities with intelligent field matching.
 
 # Example:
@@ -34,15 +35,11 @@ Person(FirstName='Ashley', EmailAddress='tbutler@example.net', CellPhoneNumber='
 
 ## Installation
 
-PyPi package coming soon! In the meantime, install via git:
+Install via pip:
 ```bash
-gh repo clone eschallack/PyMocker
+pip install pymocker
 ```
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
+
 ### Intelligent Field Matching
 
 PyMocker's internal ranking and similarity algorithms use a number of techniques to match fields to methods, including cosine similarity. You can adjust the confidence threshold for this behavior:
