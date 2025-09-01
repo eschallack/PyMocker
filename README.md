@@ -35,15 +35,11 @@ Person(FirstName='Ashley', EmailAddress='tbutler@example.net', CellPhoneNumber='
 
 ## Installation
 
-PyPi package coming soon! In the meantime, install via git:
+Install via pip:
 ```bash
-gh repo clone eschallack/PyMocker
+pip install pymocker
 ```
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
+
 ### Intelligent Field Matching
 
 PyMocker goes beyond simple name matching. For example, `EmailAddress` and `CellPhoneNumber` in the `Person` model will intelligently map to appropriate Faker methods, even with non-standard casing, thanks to PyMocker's internal ranking and similarity algorithms. You can adjust the confidence threshold for this behavior:
