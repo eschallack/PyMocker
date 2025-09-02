@@ -1,7 +1,7 @@
 # PyMocker
 *This library is experimental*
 
-PyMocker is a Python library that automatically generates realistic, context-aware mock data for your data models. Built as a powerful extension of [Polyfactory](https://github.com/litestar-org/polyfactory), PyMocker is a drop-in solution perfect for creating compelling mockups for clients, presentations, or testing environments.
+PyMocker is a powerful Python library that extends [Polyfactory](https://github.com/litestar-org/polyfactory) to automatically generate realistic, context-aware mock data for your Python data models. Say goodbye to random strings! it's a drop-in solution for creating professional mockups and test data.
 
 ## Installation
 Install via pip:
