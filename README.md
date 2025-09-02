@@ -9,7 +9,7 @@ Install via pip:
 pip install pymocker
 ```
 # Example:
-Add `@mocker.mock()` decorator to any **Polyfactory** class, and it will automatically generate realistic, contextual data.
+Add the `@mocker.mock()` decorator to any **Polyfactory** class, and it will automatically generate realistic, contextual data.
 ```python
 ...
 class Person(BaseModel):
