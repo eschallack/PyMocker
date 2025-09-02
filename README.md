@@ -1,10 +1,15 @@
 # PyMocker
-*this library works, but is in an experimental phase. Feedback is encouraged*
+*This library is experimental*
 
-PyMocker is a powerful and flexible Python library designed to generate realistic, context-aware mock data automatically. Built for the robust [polyfactory](https://github.com/litestar-org/polyfactory) library, PyMocker extends its capabilities with intelligent field matching.
+PyMocker is a powerful Python library that extends [Polyfactory](https://github.com/litestar-org/polyfactory) to automatically generate realistic, context-aware mock data for your Python data models. Say goodbye to random strings! it's a drop-in solution for creating professional mockups and test data.
 
+## Installation
+Install via pip:
+```bash
+pip install pymocker
+```
 # Example:
-Just add mocker.mock() to any Polyfactory:
+Add the `@mocker.mock()` decorator to any **Polyfactory** class, and it will automatically generate realistic, contextual data.
 ```python
 ...
 class Person(BaseModel):
@@ -28,13 +33,6 @@ Polyfactory + Mocker:
 Person(FirstName='Ashley', EmailAddress='tbutler@example.net', CellPhoneNumber='429-860-3379')
 ```
 See [examples](https://github.com/eschallack/PyMocker/tree/main/examples) for more!
-
-## Installation
-
-Install via pip:
-```bash
-pip install pymocker
-```
 
 ### Intelligent Field Matching
 
