@@ -1,7 +1,13 @@
 import sys
 import os
-
+from findpython import TypeVar
+import pandas as pd
+from pydantic import BaseModel, Field, create_model
 from polyfactory.factories.base import BaseFactory
+from polyfactory.factories.pydantic_factory import ModelFactory
+
+from pandas.api.extensions import register_extension_dtype, ExtensionDtype, register_dataframe_accessor
+
 try:
     # pydantic v1
     from pydantic import BaseModel as BaseModelV1
@@ -93,7 +99,8 @@ class Mocker:
             return new_factory_class
 
         return decorator
-    
+        
+                
     def lookup_method_from_instances(self, field_name: str, field_type: Type = None, confidence_threshold: float = 0.75, rank_match=True):
         """
         Gets all callable methods from the instances provided to Config.
@@ -179,3 +186,49 @@ class Mocker:
             if method:
                 setattr(obj, field_meta.name, method)
         return obj
+def dict_model(name: str, dict_def: dict):
+    fields = {}
+    for field_name, value in dict_def.items():
+        if isinstance(value, tuple):
+            fields[field_name] = value
+        elif isinstance(value, dict):
+            fields[field_name] = (dict_model(f"{name}_{field_name}", value), ...)
+        else:
+            raise ValueError(f"Field {field_name}:{value} has invalid syntax")
+    return create_model(name, **fields)
+try:
+    del pd.DataFrame.mocker
+except AttributeError:
+    pass
+@pd.api.extensions.register_dataframe_accessor("mocker")
+class MockerAccessor:
+    def __init__(self, pandas_obj:pd.DataFrame):
+        self._obj = pandas_obj
+
+    @property
+    def _pydantic_cls(self) -> Type[BaseModel]:
+        df = self._obj.convert_dtypes(infer_objects=True)
+
+        field_definitions = {}
+        for col, dtype in df.dtypes.items():
+            # Use `tolist` trick on an example value to get the native type
+            sample = df[col].dropna().iloc[0] if not df[col].dropna().empty else None
+            if sample is None:
+                py_type = str  # fallback for empty column
+            else:
+                native = getattr(sample, "tolist", lambda: sample)()
+                py_type = type(native)
+
+            field_definitions[col] = (py_type, ...)
+        
+        return dict_model(
+            "PandasPydanticModel",
+            field_definitions
+        )
+    
+    def mock(self, mocker:Mocker, **kwargs):
+        # plot this array's data on a map, e.g., using Cartopy
+        @mocker.mock()
+        class DFFactory(ModelFactory[self._pydantic_cls]):...
+        dffactory= DFFactory.build()
+        return dffactory

@@ -16,3 +16,4 @@ class PersonFactory(ModelFactory[Person]):
     
 person_jane = PersonFactory.build()
 print(person_jane)
+
