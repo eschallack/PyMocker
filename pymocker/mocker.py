@@ -204,7 +204,6 @@ except AttributeError:
 class MockerAccessor:
     def __init__(self, pandas_obj:pd.DataFrame):
         self._obj = pandas_obj
-
     @property
     def _pydantic_cls(self) -> Type[BaseModel]:
         df = self._obj.convert_dtypes(infer_objects=True)
@@ -226,9 +225,20 @@ class MockerAccessor:
             field_definitions
         )
     
-    def mock(self, mocker:Mocker, **kwargs):
-        # plot this array's data on a map, e.g., using Cartopy
+    def create_factory(self, mocker:Mocker,  **kwargs):
+        # Generate mock data
+        
         @mocker.mock()
         class DFFactory(ModelFactory[self._pydantic_cls]):...
-        dffactory= DFFactory.build()
-        return dffactory
+        self.df_factory = DFFactory
+        
+    def build(self,rows:int=1, **kwargs):
+        # Generate mock data
+        mocker = kwargs.get("mocker",None)
+        if not self.df_factory and not mocker:
+            raise In
+        results = []
+        for i in range(rows):
+            results.append(self.df_factory.build())
+       
+        return results

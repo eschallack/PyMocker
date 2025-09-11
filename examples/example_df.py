@@ -14,5 +14,6 @@ class PersonModel(BaseModel):
 if __name__ == '__main__':
     df = pd.read_excel(r'examples/data/testing.xlsx')
     mocker=Mocker()
-    pyd=df.mocker.mock(mocker)
+    df.mocker.create(mocker)
+    
     print(pyd)
