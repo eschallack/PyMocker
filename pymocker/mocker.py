@@ -186,6 +186,7 @@ class Mocker:
             if method:
                 setattr(obj, field_meta.name, method)
         return obj
+    
 def dict_model(name: str, dict_def: dict):
     fields = {}
     for field_name, value in dict_def.items():
@@ -200,6 +201,11 @@ try:
     del pd.DataFrame.mocker
 except AttributeError:
     pass
+from enum import Enum
+class BuildMode(Enum):
+    append:str='append'
+    replace:str='replace'
+    
 @pd.api.extensions.register_dataframe_accessor("mocker")
 class MockerAccessor:
     def __init__(self, pandas_obj:pd.DataFrame):
@@ -232,13 +238,24 @@ class MockerAccessor:
         class DFFactory(ModelFactory[self._pydantic_cls]):...
         self.df_factory = DFFactory
         
-    def build(self,rows:int=1, **kwargs):
+    def build(self,
+              rows:int=1,
+              mode:BuildMode='append',
+              **kwargs):
         # Generate mock data
         mocker = kwargs.get("mocker",None)
-        if not self.df_factory and not mocker:
-            raise In
-        results = []
+        if not hasattr(self, "df_factory") and not mocker:
+            raise Exception
+        if mocker:
+            self.create_factory(mocker)
+        
+        new_data = []
         for i in range(rows):
-            results.append(self.df_factory.build())
-       
-        return results
+            data_instance=self.df_factory.build()
+            new_data.append({col: getattr(data_instance, col) for col in self._obj.columns})
+        if mode == 'append':
+            self._obj = pd.concat([self._obj, pd.DataFrame(new_data)], ignore_index=True)
+        elif mode == 'replace':
+            self._obj = pd.DataFrame(new_data)
+        
+        return self._obj

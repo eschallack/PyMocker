@@ -1,10 +1,7 @@
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from pymocker.mocker import Mocker
 from polyfactory.factories.pydantic_factory import ModelFactory
-from datetime import date
-from faker import Faker
-from pprint import pprint
 import pandas as pd
 
 class PersonModel(BaseModel):
@@ -12,8 +9,19 @@ class PersonModel(BaseModel):
     firstname:str
 
 if __name__ == '__main__':
-    df = pd.read_excel(r'examples/data/testing.xlsx')
+    df = pd.DataFrame(
+        columns=['id',
+                 'firstname',
+                 'middlename',
+                 'lastname',
+                 'ssn',
+                 'phonenumber',
+                 'address_line_1',
+                 'address_line_2',
+                 'company'])
     mocker=Mocker()
-    df.mocker.create(mocker)
-    
-    print(pyd)
+    rows=10
+    # or go crazy!!!
+    # rows=100000
+    df=df.mocker.build(mocker=mocker, rows=rows)
+    df.to_clipboard(index=False)

@@ -1,4 +1,6 @@
 from sentence_transformers import SentenceTransformer, util
+import os
+os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 model = SentenceTransformer('all-MiniLM-L6-v2')
 
 def rank(options:list[str],target:str):
