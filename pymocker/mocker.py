@@ -1,7 +1,13 @@
 import sys
 import os
-
+from findpython import TypeVar
+import pandas as pd
+from pydantic import BaseModel, Field, create_model
 from polyfactory.factories.base import BaseFactory
+from polyfactory.factories.pydantic_factory import ModelFactory
+
+from pandas.api.extensions import register_extension_dtype, ExtensionDtype, register_dataframe_accessor
+
 try:
     # pydantic v1
     from pydantic import BaseModel as BaseModelV1
@@ -93,7 +99,8 @@ class Mocker:
             return new_factory_class
 
         return decorator
-    
+        
+                
     def lookup_method_from_instances(self, field_name: str, field_type: Type = None, confidence_threshold: float = 0.75, rank_match=True):
         """
         Gets all callable methods from the instances provided to Config.
@@ -179,3 +186,76 @@ class Mocker:
             if method:
                 setattr(obj, field_meta.name, method)
         return obj
+    
+def dict_model(name: str, dict_def: dict):
+    fields = {}
+    for field_name, value in dict_def.items():
+        if isinstance(value, tuple):
+            fields[field_name] = value
+        elif isinstance(value, dict):
+            fields[field_name] = (dict_model(f"{name}_{field_name}", value), ...)
+        else:
+            raise ValueError(f"Field {field_name}:{value} has invalid syntax")
+    return create_model(name, **fields)
+try:
+    del pd.DataFrame.mocker
+except AttributeError:
+    pass
+from enum import Enum
+class BuildMode(Enum):
+    append:str='append'
+    replace:str='replace'
+    
+@pd.api.extensions.register_dataframe_accessor("mocker")
+class MockerAccessor:
+    def __init__(self, pandas_obj:pd.DataFrame):
+        self._obj = pandas_obj
+    @property
+    def _pydantic_cls(self) -> Type[BaseModel]:
+        df = self._obj.convert_dtypes(infer_objects=True)
+
+        field_definitions = {}
+        for col, dtype in df.dtypes.items():
+            # Use `tolist` trick on an example value to get the native type
+            sample = df[col].dropna().iloc[0] if not df[col].dropna().empty else None
+            if sample is None:
+                py_type = str  # fallback for empty column
+            else:
+                native = getattr(sample, "tolist", lambda: sample)()
+                py_type = type(native)
+
+            field_definitions[col] = (py_type, ...)
+        
+        return dict_model(
+            "PandasPydanticModel",
+            field_definitions
+        )
+    
+    def create_factory(self, mocker:Mocker,  **kwargs):
+        # Generate mock data
+        
+        @mocker.mock()
+        class DFFactory(ModelFactory[self._pydantic_cls]):...
+        self.df_factory = DFFactory
+        
+    def build(self,
+              rows:int=1,
+              mode:BuildMode='append',
+              **kwargs):
+        # Generate mock data
+        mocker = kwargs.get("mocker",None)
+        if not hasattr(self, "df_factory") and not mocker:
+            raise Exception
+        if mocker:
+            self.create_factory(mocker)
+        
+        new_data = []
+        for i in range(rows):
+            data_instance=self.df_factory.build()
+            new_data.append({col: getattr(data_instance, col) for col in self._obj.columns})
+        if mode == 'append':
+            self._obj = pd.concat([self._obj, pd.DataFrame(new_data)], ignore_index=True)
+        elif mode == 'replace':
+            self._obj = pd.DataFrame(new_data)
+        
+        return self._obj
