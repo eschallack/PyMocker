@@ -9,7 +9,6 @@ from polyfactory.factories.pydantic_factory import ModelFactory
 from pandas.api.extensions import register_extension_dtype, ExtensionDtype, register_dataframe_accessor
 
 try:
-    # pydantic v1
     from pydantic import BaseModel as BaseModelV1
 
     # Keep this import last to prevent warnings from pydantic if pydantic v2
