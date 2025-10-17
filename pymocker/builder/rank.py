@@ -1,9 +1,9 @@
 from sentence_transformers import SentenceTransformer, util
 import os
 os.environ['TOKENIZERS_PARALLELISM'] = 'false'
-model = SentenceTransformer('all-MiniLM-L6-v2')
 
 def rank(options:list[str],target:str):
+    model = SentenceTransformer('all-MiniLM-L6-v2')
     if not options:
         return []
     query_embeddings = model.encode(options, convert_to_tensor=True)
