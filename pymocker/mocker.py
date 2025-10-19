@@ -123,9 +123,8 @@ class Mocker:
             return None
 
         def _find_cosine_similarity_match(obj, name, f_type, conf_thresh, r_match):
-            if not (r_match and conf_thresh > 0):
+            if not (r_match and conf_thresh > 0) or r_match == False:
                 return None
-
             lookup_name = segment_and_join_word(name)
             methods = []
             obj_method_names = [method_name for method_name in dir(obj) if not method_name.startswith('_')]
